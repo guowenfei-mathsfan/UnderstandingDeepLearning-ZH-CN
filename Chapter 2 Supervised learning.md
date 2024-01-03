@@ -69,17 +69,12 @@ Figure 2.2 线性回归中的训练数据，模型和损失的展示。a）我�
 损失 L 是参数 $\phi$ 的函数；当模型拟合较差时（如图 2.2b,c），损失会较大；而拟合良好时（如图 2.2d），损失则较小。从这个角度来看，我们称 $L[\phi]$ 为损失函数或成本函数。目标是找到能最小化这个量的参数 $\hat \phi$：
 
 $$
-\hat{\phi} = \underset{\phi}{\mathrm{argmin}} \, L(\phi)
+\begin{align}
+\hat{\phi} &= \underset{\phi}{\mathrm{argmin}} \, L(\phi) \\
+&= \underset{\phi}{\mathrm{argmin}} \, \left[ \sum_{i=1}^{I} (f(x_i; \phi) - y_i)^2 \right] \\
+&= \underset{\phi}{\mathrm{argmin}} \, \left[ \sum_{i=1}^{I} (\phi_0 + \phi_1 x_i - y_i)^2 \right] \tag{2.6}
+\end{align}
 $$
-
-$$
-= \underset{\phi}{\mathrm{argmin}} \, \left[ \sum_{i=1}^{I} (f(x_i; \phi) - y_i)^2 \right]
-$$
-
-$$
-= \underset{\phi}{\mathrm{argmin}} \, \left[ \sum_{i=1}^{I} (\phi_0 + \phi_1 x_i - y_i)^2 \right] \tag{2.6}
-$$
-
 由于模型只有两个参数（y 截距 $\phi_0$ 和斜率 $\phi_1$），我们可以为每一组参数值的组合计算损失，并将损失函数以表面的形式进行可视化（见图 2.3）。"最佳" 参数则位于这个表面的最低点。
 
 ![Figure2.3](figures/chapter2/SupervisedSurface.svg)
@@ -178,7 +173,7 @@ $$
 ### 问题2.3
 当我们将线性回归模型转换为生成模型时，模型的形式变为 $x = g[y, \phi] = \phi_0 + \phi_1 y$。在这种情况下，我们的目标是最小化 x和 $g[y, \phi]$ 之间的差异。
 #### 新损失函数
-新的损失函数将是 x 和生成的 x （即 $ g[y, \phi] $）之间的差的平方和。因此，新的损失函数 $L'(\phi)$ 可以表示为：
+新的损失函数将是 x 和生成的 x （即 $g[y, \phi]$）之间的差的平方和。因此，新的损失函数 $L'(\phi)$ 可以表示为：
 
 $$
 \begin{align}
@@ -198,7 +193,9 @@ y = \frac{x - \phi_0}{\phi_1}
 $$
 因此，逆函数 $g^{-1}[x, \phi]$ 是：
 
-$$ g^{-1}[x, \phi] = \frac{x - \phi_0}{\phi_1} $$
+$$
+g^{-1}[x, \phi] = \frac{x - \phi_0}{\phi_1} 
+$$
 #### 模型预测比较
 在这种情况下，生成模型和判别模型版本是否会做出相同的预测取决于模型的学习方式。判别模型直接学习了从 y 到 x 的映射，而生成模型学习了从 x 到 y 的映射，然后我们求逆以进行预测。
 
