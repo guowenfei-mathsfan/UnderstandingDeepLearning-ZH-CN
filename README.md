@@ -9,8 +9,8 @@ Published by MIT Press Dec 5th 2023.
 
 本书正文一共21章，涵盖了深度学习领域的许多关键概念，无论是初学者还是已经有工作经验的开发者都有极高的阅读价值。
 ## 目录
-- [ ] Chapter 1 - Introduction 介绍
-- [ ] Chapter 2 - Supervised learning 监督学习
+- [x] Chapter 1 - Introduction 介绍
+- [x] Chapter 2 - Supervised learning 监督学习
 - [ ] Chapter 3 - Shallow neural networks 浅层神经网络
 - [ ] Chapter 4 - Deep neural networks 深度神经网络
 - [ ] Chapter 5 - Loss functions 损失函数
