@@ -1,18 +1,16 @@
-The last three chapters described linear regression, shallow neural networks, and deep neural networks. Each represents a family of functions that map input to output, where the particular member of the family is determined by the model parameters $\phi$. When we train these models, we seek the parameters that produce the best possible mapping from input to output for the task we are considering. This chapter defines what is meant by the “best possible” mapping.
+前三章分别介绍了线性回归、浅层神经网络和深度神经网络。这些都属于函数家族，能够实现从输入到输出的映射，其具体的函数取决于模型参数 $\phi$。在训练这些模型时，我们的目标是找到能够为特定任务提供最优输入输出映射的参数。本章将详细阐述“最优映射”的含义。
 
-That definition requires a training dataset $\{x_i, y_i\}$ of input/output pairs. A *loss function* or *cost function* $L[\phi]$ returns a single number that describes the mismatch between the model predictions $f(x_i, \phi)$ and their corresponding ground-truth outputs $y_i$. During training, we seek parameter values $\phi$ that minimize the loss and hence map the training inputs to the outputs as closely as possible. We saw one example of a loss function in chapter 2; the least squares loss function is suitable for univariate regression problems for which the target is a real number $y \in \mathbb{R}$. It computes the sum of the squares of the deviations between the model predictions $f(x_i, \phi)$ and the true values $y_i$.
+要定义“最优映射”，首先需要一组训练数据集 $\{x_i, y_i\}$，即输入和输出的配对。损失函数（Loss Function）$L[\phi]$ 能够返回一个数值，这个数值描述了模型预测 $f(x_i, \phi)$ 与其对应的真实输出 $y_i$ 之间的不匹配程度。在训练过程中，我们追求的是能最小化损失的参数值 $\phi$，以使训练输入尽可能准确地映射到输出。例如，在第2章中，我们见到了一种损失函数——最小平方损失函数，适用于目标是实数 $y \in \mathbb{R}$ 的单变量回归问题。该函数通过计算模型预测 $f(x_i, \phi)$ 与真实值 $y_i$ 之间差异的平方和来进行计算。
 
-This chapter provides a framework that both justifies the choice of the least squares criterion for real-valued outputs and allows us to build loss functions for other prediction types. We consider *binary classification*, where the prediction $y \in \{0, 1\}$ is one of two categories, *multiclass classification*, where the prediction $y \in \{1, 2, \ldots, K\}$ is one of $K$ categories, and more complex cases. In the following two chapters, we address model training, where the goal is to find the parameter values that minimize these loss functions.
+本章还提出了一个框架，不仅证明了在实值输出场景下选择最小平方准则的适用性，还指导我们为其他类型的预测问题构建损失函数。我们将讨论包括二元分类（其中预测结果 $y \in \{0, 1\}$ 属于两个类别中的一个）和多类别分类（预测结果 $y \in \{1, 2, \ldots, K\}$ 属于 $K$ 个类别中的一个）在内的多种情形。在接下来的两章中，我们将探讨模型训练的过程，目标是找到能最小化这些损失函数的参数值。
+## 5.1 最大似然
+在本节中，我们将介绍构建损失函数的具体方法。设想一个计算输入 $x$ 到输出的模型 $f(x, \phi)$，其中 $\phi$ 是模型的参数。之前，我们认为模型直接输出预测结果 $y$。现在，我们改变思路，将模型视为计算给定输入 $x$ 时，可能的输出 $y$ 的条件概率分布 $Pr(y|x)$。这种损失函数的设计目的是使得每个训练输出 $y_i$ 在由对应输入 $x_i$ 计算得到的分布 $Pr(y_i|x_i)$ 中具有较高的概率（见图 5.1）。
+#### 5.1.1 计算输出的分布
+这引出了一个问题：模型 $f(x, \phi)$ 如何转化为计算概率分布的形式。答案很简单。首先，我们需要选定一个定义在输出域 $Y$ 上的参数化概率分布 $Pr(y|\theta)$。接着，我们利用神经网络来计算该分布的一个或多个参数 $\theta$。
 
-## 5.1 Maximum likelihood
-In this section, we develop a recipe for constructing loss functions. Consider a model $f(x, \phi)$ with parameters $\phi$ that computes an output from input $x$. Until now, we have implied that the model directly computes a prediction $y$. We now shift perspective and consider the model as computing a *conditional probability distribution* $Pr(y|x)$ over possible outputs $y$ given input $x$. The loss encourages each training output $y_i$ to have a high probability under the distribution $Pr(y_i|x_i)$ computed from the corresponding input $x_i$ (figure 5.1).
-### 5.1.1 Computing a distribution over outputs
-This raises the question of exactly how a model $f(x, \phi)$ can be adapted to compute a probability distribution. The solution is simple. First, we choose a parametric distribution $Pr(y|\theta)$ defined on the output domain $Y$. Then we use the network to compute one or more of the parameters $\theta$ of this distribution.
-
-For example, suppose the prediction domain is the set of real numbers, so $y \in \mathbb{R}$. Here, we might choose the univariate normal distribution, which is defined on $\mathbb{R}$. This distribution is defined by the mean $\mu$ and variance $\sigma^2$, so $\theta = \{\mu, \sigma^2\}$. The machine learning model might predict the mean $\mu$, and the variance $\sigma^2$ could be treated as an unknown constant.
-
-### 5.1.2 Maximum likelihood criterion
-The model now computes different distribution parameters $\theta_i = f(x_i, \phi)$ for each training input $x_i$. Each observed training output $y_i$ should have high probability under its corresponding distribution $Pr(y_i|\theta_i)$. Hence, we choose the model parameters $\phi$ so that they maximize the combined probability across all $I$ training examples:
+例如，假设预测域是实数集，即 $y \in \mathbb{R}$。在这种情况下，我们可能选择单变量正态分布，它在 $\mathbb{R}$ 上有定义。该分布由均值 $\mu$ 和方差 $\sigma^2$ 所决定，因此 $\theta = \{\mu, \sigma^2\}$。机器学习模型可以用来预测均值 $\mu$，而方差 $\sigma^2$ 则可以视为一个待定的常数。
+#### 5.1.2 最大似然准则
+模型现在针对每个训练输入 $x_i$ 计算不同的分布参数 $\theta_i = f(x_i, \phi)$。我们的目标是使每个训练输出 $y_i$ 在其相应的分布 $Pr(y_i|\theta_i)$ 下具有较高概率。因此，我们选择模型参数 $\phi$，以最大化所有 $I$ 个训练样本的联合概率：
 $$
 \begin{align}
 \hat{\phi} &= argmax_{\phi} \left[ \prod_{i=1}^{I} Pr(y_i|x_i) \right] \\
@@ -21,20 +19,18 @@ $$
 \end{align} \tag{5.1}
 $$
 
+这个联合概率项反映的是参数的似然（Likelihood），因此方程 5.1 称为最大似然准则（Maximum Likelihood Criterion）[^1]。
 
-The combined probability term is the *likelihood* of the parameters, and hence equation 5.1 is known as the *maximum likelihood criterion*[^1].
-
-Here we are implicitly making two assumptions. First, we assume that the data are identically distributed (the form of the probability distribution over the outputs $y_i$ is the same for each data point). Second, we assume that the conditional distributions $Pr(y_i|x_i)$ of the output given the input are independent, so the total likelihood of the training data decomposes as:
+这里我们基于两个假设。首先，我们假设所有数据点的输出 $y_i$ 都服从相同的概率分布，即数据是同分布的。其次，我们认为给定输入的输出的条件分布 $Pr(y_i|x_i)$ 是相互独立的，因此整个训练数据集的似然可以表示为：
 
 $$
 Pr(y_1, y_2, \ldots , y_I|x_1, x_2, \ldots , x_I) = \prod_{i=1}^{I} Pr(y_i|x_i) \tag{5.2}
 $$
 
+换言之，我们假定数据是独立同分布（i.i.d.）的。
 
-In other words, we assume the data are *independent and identically distributed (i.i.d.)*.
-### 5.1.3 Maximizing log-likelihood
-
-The maximum likelihood criterion (equation 5.1) is not very practical. Each term $Pr(y_i|f(x_i, \phi))$ can be small, so the product of many of these terms can be tiny. It may be difficult to represent this quantity with finite precision arithmetic. Fortunately, we can equivalently maximize the logarithm of the likelihood:
+#### 5.1.3 最大化对数似然
+尽管最大似然准则（方程 5.1）理论上有效，但在实际应用中并不方便。每个项 $Pr(y_i|f(x_i, \phi))$ 的值可能很小，导致这些项的乘积极小，难以用有限精度算法精确表示。幸运的是，我们可以通过最大化似然的对数来解决这个问题：
 
 $$
 \begin{align}
@@ -44,65 +40,66 @@ $$
 \end{align} \tag{5.3}
 $$
 
-This *log-likelihood* criterion is equivalent because the logarithm is a monotonically increasing function: if $x > x'$, then $\log[x] > \log[x']$ and vice versa (figure 5.2). It follows that when we change the model parameters $\phi$ to improve the log-likelihood criterion, we also improve the original maximum likelihood criterion. It also follows that the overall maxima of the two criteria must be in the same place, so the best model parameters $\hat{\phi}$ are the same in both cases. However, the log-likelihood criterion has the practical advantage of using a sum of terms, not a product, so representing it with finite precision isn't problematic.
-### 5.1.4 Minimizing negative log-likelihood
+由于对数是单调递增函数，对数似然准则与原始最大似然准则在数学上是等价的。这意味着，提高对数似然准则的同时，也就提高了最大似然准则。因此，两种准则的最大值位置是相同的，最优的模型参数 $\hat{\phi}$ 在两种情况下都是一致的。同时，对数似然准则通过求和而非乘积，避免了精度问题。
+#### 5.1.4 最小化负对数似然
 
-Finally, we note that, by convention, model fitting problems are framed in terms of minimizing a loss. To convert the maximum log-likelihood criterion to a minimization problem, we multiply by minus one, which gives us the *negative log-likelihood criterion*:
+通常，模型拟合问题是以最小化损失的方式来定义的。为了将最大对数似然准则转换为一个最小化问题，我们通过乘以负一得到负对数似然准则：
 
 $$
 \hat{\phi} = argmin_{\phi} \left[ - \sum_{i=1}^{I} \log Pr(y_i|f(x_i, \phi)) \right]
 = argmin_{\phi} [ L[\phi] ] \tag{5.4}
 $$
-which is what forms the final loss function $L[\phi]$.
+这就构成了最终的损失函数 $L[\phi]$。
 
-### 5.1.5 Inference
+#### 5.1.5 推断
 
-The network no longer directly predicts the outputs $y$ but instead determines a probability distribution over $y$. When we perform inference, we often want a point estimate rather than a distribution, so we return the maximum of the distribution:
+如今，网络不再直接预测输出 $y$，而是确定了一个关于 $y$ 的概率分布。在进行推断时，我们一般需要一个具体的估计值而不是整个分布，因此我们选择分布的最大值作为预测：
 
 $$
 \hat{y} = argmax_y [Pr(y|f(x, \phi))]  \tag{5.5}
 $$
 (5.5)
 
-It is usually possible to find an expression for this in terms of the distribution parameters $\theta$ predicted by the model. For example, in the univariate normal distribution, the maximum occurs at the mean $\mu$.
+我们通常可以根据模型预测的分布参数 $\theta$ 来确定这个估计值。例如，在单变量正态分布中，最大值出现在均值 $\mu$ 处。
 
-## 5.2 Recipe for constructing loss functions
 
-The recipe for constructing loss functions for training data $\{x_i, y_i\}$ using the maximum likelihood approach is hence:
+## 5.2 构建损失函数的步骤
 
-1. Choose a suitable probability distribution $Pr(y|\theta)$ defined over the domain of the predictions $y$ with distribution parameters $\theta$.
-2. Set the machine learning model $f(x, \phi)$ to predict one or more of these parameters, so $\theta = f(x, \phi)$ and $Pr(y|\theta) = Pr(y|f(x, \phi))$.
-3. To train the model, find the network parameters $\phi$ that minimize the negative log-likelihood loss function over the training dataset pairs $\{x_i, y_i\}$:
+根据最大似然方法，针对训练数据 $\{x_i, y_i\}$ 构建损失函数的步骤如下：
+
+1. 选定一个适合预测结果 $y$ 的概率分布 $Pr(y|\theta)$，并确定其分布参数 $\theta$。
+2. 设定机器学习模型 $f(x, \phi)$ 来预测这些参数中的一个或多个，即 $\theta = f(x, \phi)$，$Pr(y|\theta) = Pr(y|f(x, \phi))$。
+3. 为训练模型，寻找最小化负对数似然损失函数的模型参数 $\phi$：
 
 $$
 \hat{\phi} = argmin_{\phi} [ L[\phi] ] = argmin_{\phi} \left[ - \sum_{i=1}^{I} \log Pr(y_i|f(x_i, \phi)) \right] \tag{5.6}
 $$
 
-4. To perform inference for a new test example $x$, return either the full distribution $Pr(y|f(x, \phi))$ or the maximum of this distribution.
+4. 对于新的测试样例 $x$，返回完整分布 $Pr(y|f(x, \phi))$ 或此分布的最大值。
 
-We devote most of the rest of this chapter to constructing loss functions for common prediction types using this recipe.
-## 5.3 Example 1: univariate regression
+本章其余部分主要讨论如何使用这种方法为常见的预测类型构建损失函数。
+## 5.3 示例 1：单变量回归
 
-We start by considering univariate regression models. Here the goal is to predict a single scalar output $y \in \mathbb{R}$ from input $x$ using a model $f(x, \phi)$ with parameters $\phi$. Following the recipe, we choose a probability distribution over the output domain $y$. We select the univariate normal (figure 5.3), which is defined over $y \in \mathbb{R}$. This distribution has two parameters (mean $\mu$ and variance $\sigma^2$) and has a probability density function:
+首先考虑单变量回归模型。这里的目标是用带有参数 $\phi$ 的模型 $f(x, \phi)$，从输入 $x$ 预测单一实数输出 $y \in \mathbb{R}$。遵循上述步骤，我们为输出域 $y$ 选择一个概率分布。我们选用单变量正态分布（见图 5.3），它定义在 $y \in \mathbb{R}$ 上。该分布有两个参数（均值 $\mu$ 和方差 $\sigma^2$），并具有概率密度函数：
 
 $$
 Pr(y|\mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left[ -\frac{(y - \mu)^2}{2\sigma^2} \right] \tag{5.7}
 $$
-Second, we set the machine learning model $f(x, \phi)$ to compute one or more of the parameters of this distribution. Here, we just compute the mean so $\mu = f(x, \phi)$:
+接着，我们让机器学习模型 $f(x, \phi)$ 计算这个分布的一个或多个参数。在这里，我们只计算均值 $\mu = f(x, \phi)$：
 
 $$
 Pr(y|f(x, \phi), \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left[ -\frac{(y - f(x, \phi))^2}{2\sigma^2} \right] \tag{5.8}
 $$
-We aim to find the parameters $\phi$ that make the training data $\{x_i, y_i\}$ most probable under this distribution (figure 5.4). To accomplish this, we choose a loss function $L[\phi]$ based on the negative log-likelihood:
+我们的目标是找到使训练数据 $\{x_i, y_i\}$ 在此分布下尽可能概率最高的参数 $\phi$（参见图 5.4）。为此，我们选择了基于负对数似然的损失函数 $L[\phi]$：
 
 $$
 L[\phi] = - \sum_{i=1}^{I} \log \left[ Pr(y_i|f(x_i, \phi), \sigma^2) \right]
 = - \sum_{i=1}^{I} \log \left[ \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left[ -\frac{(y_i - f(x_i, \phi))^2}{2\sigma^2} \right] \right] \tag{5.9}
 $$
-When we train the model, we seek parameters $\hat{\phi}$ that minimize this loss.
-### 5.3.1 Least squares loss function
+在训练模型时，我们的目标是找到最小化这一损失的参数 $\hat{\phi}$。
+#### 5.3.1 最小平方损失函数
 
-Now let’s perform some algebraic manipulations on the loss function. We seek:
+我们对损失函数进行一系列代数操作，目的是寻找：
 
 $$
 \begin{align}
@@ -111,37 +108,41 @@ $$
 &= argmin_{\phi} \left[ \sum_{i=1}^{I} \frac{(y_i - f(x_i, \phi))^2}{2\sigma^2} \right] \tag{5.10}
 \end{align}
 $$
-where we have removed the first term between the second and third lines because it does not depend on $\phi$. We have removed the denominator between the third and fourth lines, as this is just a constant scaling factor that does not affect the position of the minimum.
+在这里，我们去除了与 $\phi$ 无关的项，并忽略了常数缩放因子，因为它不影响最小值的位置。
 
-The result of these manipulations is the least squares loss function that we originally introduced when we discussed linear regression in chapter 2:
+通过这些操作，我们得到了最小平方损失函数，这是我们在第2章讨论线性回归时首次提出的：
 
 $$
 L[\phi] = \sum_{i=1}^{I} (y_i - f(x_i, \phi))^2 \tag{5.11}
 $$
-We see that the least squares loss function follows naturally from the assumptions that the prediction errors are (i) independent and (ii) drawn from a normal distribution with mean $\mu = f(x_i, \phi)$ (figure 5.4).
+最小平方损失函数的自然来源于两个假设：预测误差（i）是独立的，并且（ii）遵循均值为 $\mu = f(x_i, \phi)$ 的正态分布（参见图 5.4）。
 
-### 5.3.2 Inference
+#### 5.3.2 推断
 
-The network no longer directly predicts $y$ but instead predicts the mean $\mu = f(x, \phi)$ of the normal distribution over $y$. When we perform inference, we usually want a single “best” point estimate, so we take the maximum of the predicted distribution:
+网络现在不直接预测 $y$，而是预测 $y$ 的正态分布均值 $\mu = f(x, \phi)$。在进行推断时，我们通常寻求一个最佳的单点估计，因此我们选择预测分布的最大值：
 
 $$
 \hat{y} = \argmax_y [Pr(y|f(x, \phi))] .
 $$
 (5.12)
 
-For the univariate normal, the maximum position is determined by the mean parameter $\mu$ (figure 5.3). This is precisely what the model computed, so $\hat{y} = f(x, \phi)$.
+在单变量正态分布中，最大值位置由均值参数 $\mu$ 决定（参见图 5.3）。这正是模型所计算的，因此 $\hat{y} = f(x, \phi)$。
+#### 5.3.3 估计方差
 
-### 5.3.3 Estimating variance
+在制定最小平方损失函数时，我们假定网络预测了正态分布的均值。有趣的是，方程 5.11 中的最终表达式并不依赖于方差 $\sigma^2$。但我们可以将 $\sigma^2$ 视为模型的参数之一，并对模型参数 $\phi$ 和分布的方差 $\sigma^2$ 一起最小化方程 5.9：
 
-To formulate the least squares loss function, we assumed that the network predicted the mean of a normal distribution. The final expression in equation 5.11 (perhaps surprisingly) does not depend on the variance σ2. However, there is nothing to stop us from treating σ2 as a parameter of the model and minimizing equation 5.9 with respect to both the model parameters φ and the distribution variance σ2:
 
-### 5.3.4 Heteroscedastic regression
+5.13公式todo
 
-The model above assumes that the variance of the data is constant everywhere. However, this might be unrealistic. When the uncertainty of the model varies as a function of the input data, we refer to this as *heteroscedastic* (as opposed to *homoscedastic*, where the uncertainty is constant).
+在推断阶段，模型从输入中预测均值 $\mu = f[x, \hat{\phi}]$，同时我们在训练过程中得到了方差 $\hat{\sigma}^2$ 的估计。均值是最优预测，而方差反映了预测的不确定性。
 
-A simple way to model this is to train a neural network $f(x, \phi)$ that computes both the mean and the variance. For example, consider a shallow network with two outputs. We denote the first output as $f_1(x, \phi)$ and use this to predict the mean, and we denote the second output as $f_2(x, \phi)$ and use it to predict the variance.
+#### 5.3.4 异方差回归
 
-There is one complication; the variance must be positive, but we can't guarantee that the network will always produce a positive output. To ensure that the computed variance is positive, we pass the second network output through a function that maps an arbitrary value to a positive one. A suitable choice is the squaring function, giving:
+先前的模型假定数据方差是固定的，但这可能不太现实。当模型的不确定性随输入数据变化时，我们称之为异方差（与同方差相对，后者不确定性是固定的）。
+
+一种处理这种情况的简单方法是训练一个神经网络 $f(x, \phi)$ 来同时计算均值和方差。举个例子，考虑一个输出两个值的浅层网络，其中第一个输出 $f_1(x, \phi)$ 预测均值，第二个输出 $f_2(x, \phi)$ 预测方差。
+
+为了确保计算的方差始终为正，我们需要对网络的第二个输出应用一个能映射到正数的函数。一个好的选择是使用平方函数，得到：
 
 $$
 \begin{align}
@@ -149,18 +150,18 @@ $$
 \sigma^2 = f_2(x, \phi)^2 
 \end{align}\tag{5.14}
 $$
-which results in the loss function:
+这样就得到了以下损失函数：
 
 $$
 \hat{\phi} = argmin_{\phi} \left[ -\sum_{i=1}^{I} \log \left[ \frac{1}{\sqrt{2\pi f_2(x_i, \phi)^2}} \exp \left[ -\frac{(y_i - f_1(x_i, \phi))^2}{2f_2(x_i, \phi)^2} \right] \right] \right] \tag{5.15}
 $$
-Homoscedastic and heteroscedastic models are compared in figure 5.5.
+图 5.5 对比了同方差和异方差模型。
 
-## 5.4 Example 2: binary classification
+## 5.4 示例 2：二元分类
 
-In *binary classification*, the goal is to assign the data $x$ to one of two discrete classes $y \in \{0, 1\}$. In this context, we refer to $y$ as a *label*. Examples of binary classification include (i) predicting whether a restaurant review is positive ($y = 1$) or negative ($y = 0$) from text data $x$ and (ii) predicting whether a tumor is present ($y = 1$) or absent ($y = 0$) from an MRI scan $x$.
+在二元分类任务中，我们的目标是根据数据 $x$ 将其划分为两个离散类别之一 $y \in \{0, 1\}$。这里的 $y$ 被称为标签。二元分类的例子包括：（i）根据文本数据 $x$ 判断餐厅评论是正面（$y = 1$）还是负面（$y = 0$）；（ii）根据 MRI 扫描 $x$ 判断肿瘤是否存在（$y = 1$）或不存在（$y = 0$）。
 
-Once again, we follow the recipe from section 5.2 to construct the loss function. First, we choose a probability distribution over the output space $y \in \{0, 1\}$. A suitable choice is the Bernoulli distribution, which is defined on the domain $\{0, 1\}$. This has a single parameter $\lambda \in [0, 1]$ that represents the probability that $y$ takes the value one (figure 5.6):
+我们再次按照第5.2节的步骤构建损失函数。首先，我们为输出空间 $y \in \{0, 1\}$ 选择了伯努利分布，这个分布定义在 $\{0, 1\}$ 上。它有一个参数 $\lambda \in [0, 1]$，表示 $y$ 取值为 1 的概率（见图 5.6）：
 
 $$
 Pr(y|\lambda) = 
@@ -170,53 +171,53 @@ Pr(y|\lambda) =
 \end{cases} \tag{5.16}
 $$
 
-which can equivalently be written as:
+也可以写成：
 
 $$
 Pr(y|\lambda) = (1 - \lambda)^{1-y} \cdot \lambda^y \tag{5.17}
 $$
-Second, we set the machine learning model $f(x, \phi)$ to predict the single distribution parameter $\lambda$. However, $\lambda$ can only take values in the range [0, 1], and we cannot guarantee that the network output will lie in this range. Consequently, we pass the network output through a function that maps the real numbers $\mathbb{R}$ to [0, 1]. A suitable function is the logistic sigmoid (figure 5.7):
+然后，我们设置机器学习模型 $f(x, \phi)$ 来预测单一参数 $\lambda$。但由于 $\lambda$ 只能在 [0, 1] 范围内取值，我们需要通过一个函数将网络输出映射到这个范围内。一个合适的函数是逻辑斯蒂 sigmoid 函数（见图 5.7）：
 
 $$
 sig[z] = \frac{1}{1 + \exp[-z]} \tag{5.18}
 $$
-Hence, we predict the distribution parameter as $\lambda = sig[f(x, \phi)]$. The likelihood is now:
+因此，我们预测的分布参数为 $\lambda = sig[f(x, \phi)]$。现在的似然表达式为：
 
 $$
 Pr(y|x) = (1 - sig[f(x, \phi)])^{1-y} \cdot sig[f(x, \phi)]^y \tag{5.19}
 $$
-This is depicted in figure 5.8 for a shallow neural network model. The loss function is the negative log-likelihood of the training set:
+这在图 5.8 中展示了一个浅层神经网络模型。损失函数是训练集的负对数似然：
 
 $$
 L[\phi] = \sum_{i=1}^{I} -\left[(1 - y_i) \log [1 - sig[f(x_i, \phi)]] + y_i \log [sig[f(x_i, \phi)]]\right] \tag{5.20}
 $$
-For reasons to be explained in section 5.7, this is known as the binary cross-entropy loss.
+由于第5.7节将会解释的原因，这称为二元交叉熵损失。
 
-The transformed model output $sig[f(x, \phi)]$ predicts the parameter $\lambda$ of the Bernoulli distribution. This represents the probability that $y = 1$, and it follows that $1 - \lambda$ represents the probability that $y = 0$. When we perform inference, we may want a point estimate of $y$, so we set $y = 1$ if $\lambda > 0.5$ and $y = 0$ otherwise.
+变换后的模型输出 $sig[f(x, \phi)]$ 预测了伯努利分布的参数 $\lambda$。这代表 $y = 1$ 的概率，所以 $1 - \lambda$ 代表 $y = 0$ 的概率。在进行推断时，如果我们需要 $y$ 的具体估计，那么当 $\lambda > 0.5$ 时我们设定 $y = 1$，否则设定 $y = 0$。
 
-## 5.5 Example 3: multiclass classification
+## 5.5 示例 3：多类别分类
 
-The goal of *multiclass classification* is to assign an input data example $x$ to one of $K > 2$ classes, so $y \in \{1, 2, \ldots, K\}$. Real-world examples include (i) predicting which of $K = 10$ digits $y$ is present in an image $x$ of a handwritten number and (ii) predicting which of $K$ possible words $y$ follows an incomplete sentence $x$.
+多类别分类的目标是将输入数据 $x$ 分配给 $K > 2$ 个类别中的一个，即 $y \in \{1, 2, \ldots, K\}$。现实中的例子包括：（i）预测手写数字图像 $x$ 中的哪一个数字 $y$（$K = 10$）；（ii）预测不完整句子 $x$ 后面跟随的哪一个词汇 $y$（$K$ 个可能词汇）。
 
-We once more follow the recipe from section 5.2. We first choose a distribution over the prediction space $y$. In this case, we have $y \in \{1, 2, \ldots, K\}$, so we choose the *categorical distribution* (figure 5.9), which is defined on this domain. This has $K$ parameters $\lambda_1, \lambda_2, \ldots, \lambda_K$, which determine the probability of each category:
+我们再次遵循第5.2节的步骤。首先，对于输出空间 $y \in \{1, 2, \ldots, K\}$，我们选择分类分布（见图 5.9）。这个分布有 $K$ 个参数 $\lambda_1, \lambda_2, \ldots, \lambda_K$，它们确定每个类别的概率：
 $$
 Pr(y = k) = \lambda_k \tag{5.21}
 $$
-The parameters are constrained to take values between zero and one, and they must collectively sum to one to ensure a valid probability distribution.
+参数被限制在零和一之间，并且总和必须为一，以形成有效的概率分布。
 
-Then we use a network $f(x, \phi)$ with $K$ outputs to compute these $K$ parameters from the input $x$. Unfortunately, the network outputs will not necessarily obey the aforementioned constraints. Consequently, we pass the $K$ outputs of the network through a function that ensures these constraints are respected. A suitable choice is the *softmax* function (figure 5.10). This takes an arbitrary vector of length $K$ and returns a vector of the same length but where the elements are now in the range [0, 1] and sum to one. The $k^{th}$ output of the softmax function is:
+然后，我们利用具有 $K$ 个输出的网络 $f(x, \phi)$ 来从输入 $x$ 计算这 $K$ 个参数。为了确保网络输出符合约束，我们通过一个函数处理这 $K$ 个输出，这个函数是*softmax*函数（见图 5.10）。softmax 函数接受长度为 $K$ 的任意向量，并返回一个同样长度的向量，其元素位于 [0, 1] 范围内且总和为一。softmax 函数的第 $k$ 个输出是：
 
 $$
 softmax_k[z] = \frac{\exp[z_k]}{\sum_{k'=1}^{K} \exp[z_{k'}]} \tag{5.22}
 $$
-where the exponential functions ensure positivity, and the sum in the denominator ensures that the $K$ numbers sum to one.
+指数函数确保输出为正，分母的求和则保证这 $K$ 个数的总和为一。
 
-The likelihood that input $x$ has label $y$ (figure 5.10) is hence:
+因此，输入 $x$ 有标签 $y$ 的似然（见图 5.10）是：
 
 $$
 Pr(y = k|x) = softmax_k[f(x, \phi)] \tag{5.23}
 $$
-The loss function is the negative log-likelihood of the training data:
+损失函数是训练数据的负对数似然：
 
 $$
 L[\phi] = -\sum_{i=1}^{I} \log \left[ softmax_{y_i} [f(x_i, \phi)] \right]
@@ -224,35 +225,35 @@ L[\phi] = -\sum_{i=1}^{I} \log \left[ softmax_{y_i} [f(x_i, \phi)] \right]
 $$
 (5.24)
 
-where $f_k[x, \phi]$ denotes the $k^{th}$ output of the neural network. For reasons that will be explained in section 5.7, this is known as the *multiclass cross-entropy loss*.
+其中 $f_k[x, \phi]$ 是神经网络的第 $k$ 个输出。由于将在第5.7节中解释的原因，这被称为多类别交叉熵损失。
 
-The transformed model output represents a categorical distribution over possible classes $y \in \{1, 2, \ldots, K\}$. For a point estimate, we take the most probable category $\hat{y} = argmax_k[Pr(y = k|f(x, \phi))]$. This corresponds to whichever curve is highest for that value of $x$ in figure 5.10.
+模型输出的变换代表了 $y \in \{1, 2, \ldots, K\}$ 可能类别的分类分布。作为点估计，我们选择最可能的类别 $\hat{y} = argmax_k[Pr(y = k|f(x, \phi))]$，这对应于图 5.10 中对于该 $x$ 值最高的曲线。
 
-### 5.5.1 Predicting other data types
+### 5.5.1 预测其他数据类型
 
-In this chapter, we have focused on regression and classification because these problems are widespread. However, to make different types of predictions, we simply choose an appropriate distribution over that domain and apply the recipe in section 5.2. Figure 5.11 enumerates a series of probability distributions and their prediction domains. Some of these are explored in the problems at the end of the chapter.
+本章主要关注回归和分类，因为这些问题非常普遍。然而，为了预测不同类型的数据，我们只需选择适合该领域的分布，并应用第5.2节中的方法。图 5.11 列出了一系列概率分布及其预测领域。其中一些将在本章末尾的问题中进行探讨。
+## 5.6 多输出预测
 
-## 5.6 Multiple outputs
+在许多情况下，我们需要使用同一个模型进行多个预测，因此目标输出 $y$ 是向量形式。例如，我们可能想同时预测分子的熔点和沸点（多变量回归问题），或者预测图像中每个点的物体类别（多变量分类问题）。虽然可以定义多变量概率分布，并利用神经网络模拟它们作为输入的函数参数，但更常见的做法是将每个预测视为独立的。
 
-Often, we wish to make more than one prediction with the same model, so the target output $y$ is a vector. For example, we might want to predict a molecule’s melting and boiling point (a multivariate regression problem), or the object class at every point in an image (a multivariate classification problem). While it is possible to define multivariate probability distributions and use a neural network to model their parameters as a function of the input, it is more usual to treat each prediction as independent.
-
-Independence implies that we treat the probability $Pr(y|f(x, \phi))$ as a product of univariate terms for each element $y_d \in y$:
+独立性意味着我们把概率 $Pr(y|f(x, \phi))$ 看作是对于每个元素 $y_d \in y$ 的单变量项的乘积：
 
 $$
 Pr(y|f(x, \phi)) = \prod_{d} Pr(y_d|f_d[x, \phi]) \tag{5.25}
 $$
-where $f_d[x, \phi]$ is the $d^{th}$ set of network outputs, which describe the parameters of the distribution over $y_d$. For example, to predict multiple continuous variables $y_d \in \mathbb{R}$, we use a normal distribution for each $y_d$, and the network outputs $f_d[x, \phi]$ predict the means of these distributions. To predict multiple discrete variables $y_d \in {1, 2, \ldots, K}$, we use a categorical distribution for each $y_d$. Here, each set of network outputs $f_d[x, \phi]$ predicts the �K values that contribute to the categorical distribution for $y_d$​.
+其中 $f_d[x, \phi]$ 是网络对于 $y_d$ 分布参数的第 $d$ 组输出。例如，对于预测多个连续变量 $y_d \in \mathbb{R}$，我们对每个 $y_d$ 使用正态分布，并由网络输出 $f_d[x, \phi]$ 预测这些分布的均值。对于预测多个离散变量 $y_d \in \{1, 2, \ldots, K\}$，我们对每个 $y_d$ 使用分类分布。在这种情况下，每组网络输出 $f_d[x, \phi]$ 预测对 $y_d$ 分类分布的贡献值。
 
-When we minimize the negative log probability, this product becomes a sum of terms:
+最小化负对数概率时，这个乘积变为各项的求和：
 
 $$
 L[\phi] = -\sum_{i=1}^{I} \log [Pr(y_i|f(x_i, \phi))] = -\sum_{i=1}^{I} \sum_{d} \log [Pr(y_{id}|f_d[x_i, \phi])] \tag{5.26}
 $$
 
-where $y_{id}$is the $d^{th}$ output from the $i^{th}$ training example.
+其中 $y_{id}$ 是第 $i$ 个训练样本的第 $d$ 个输出。
 
-To make two or more prediction types simultaneously, we similarly assume the errors in each are independent. For example, to predict wind direction and strength, we might choose the von Mises distribution (defined on circular domains) for the direction and the exponential distribution (defined on positive real numbers) for the strength. The independence assumption implies that the joint likelihood of the two predictions is the product of individual likelihoods. These terms will become additive when we compute the negative log-likelihood.
-### 5.7 Cross-entropy loss
+为了同时进行两种或更多类型的预测，我们同样假设每种错误是独立的。比如，为了同时预测风向和风力，我们可能分别选择定义在圆形域的 von Mises 分布预测风向，以及定义在正实数上的指数分布预测风力。独立性假设意味着这两个预测的联合似然是单独似然的乘积。在计算负对数似然时，这些项会转化为加和形式。
+
+## 5.7 Cross-entropy loss
 
 In this chapter, we developed loss functions that minimize negative log-likelihood. However, the term *cross-entropy loss* is also commonplace. In this section, we describe the cross-entropy loss and show that it is equivalent to using negative log-likelihood.
 
