@@ -5,6 +5,12 @@
 本章还提出了一个框架，不仅证明了在实值输出场景下选择最小平方准则的适用性，还指导我们为其他类型的预测问题构建损失函数。我们将讨论包括二元分类（其中预测结果 $y \in \{0, 1\}$ 属于两个类别中的一个）和多类别分类（预测结果 $y \in \{1, 2, \ldots, K\}$ 属于 $K$ 个类别中的一个）在内的多种情形。在接下来的两章中，我们将探讨模型训练的过程，目标是找到能最小化这些损失函数的参数值。
 ## 5.1 最大似然
 在本节中，我们将介绍构建损失函数的具体方法。设想一个计算输入 $x$ 到输出的模型 $f(x, \phi)$，其中 $\phi$ 是模型的参数。之前，我们认为模型直接输出预测结果 $y$。现在，我们改变思路，将模型视为计算给定输入 $x$ 时，可能的输出 $y$ 的条件概率分布 $Pr(y|x)$。这种损失函数的设计目的是使得每个训练输出 $y_i$ 在由对应输入 $x_i$ 计算得到的分布 $Pr(y_i|x_i)$ 中具有较高的概率（见图 5.1）。
+
+![Figure5.1](figures/chapter5/LossDataTypes.svg)
+
+
+`图 5.1 输出分布预测。a) 回归任务中，目标是基于训练数据 {xi,yi}（橙色点）从输入 x 预测出一个实数输出 y。对于每个输入值 x，机器学习模型预测输出 y ∈ R 的分布 P(y|x)（青色曲线展示了 x = 2.0 和 x = 7.0 时的分布）。损失函数的目的是使根据相应输入 xi 预测出的分布最大化观测到的训练输出 yi 的概率。b) 在分类任务中，为预测离散类别 y ∈ {1, 2, 3, 4}，我们采用离散概率分布，模型因此针对 xi 的每个值预测 yi 的四个可能值的概率分布直方图。c) 在预测计数 y ∈ {0, 1, 2, ...} 和 d) 预测方向 y ∈ (−π, π] 的任务中，我们分别采用定义在正整数集和圆周域上的分布。`
+
 #### 5.1.1 计算输出的分布
 这引出了一个问题：模型 $f(x, \phi)$ 如何转化为计算概率分布的形式。答案很简单。首先，我们需要选定一个定义在输出域 $Y$ 上的参数化概率分布 $Pr(y|\theta)$。接着，我们利用神经网络来计算该分布的一个或多个参数 $\theta$。
 
@@ -29,6 +35,9 @@ $$
 
 换言之，我们假定数据是独立同分布（i.i.d.）的。
 
+![Figure5.2](figures/chapter5/LossLog.svg)
+
+`图 5.2 对数变换。a) 对数函数是单调递增的，即若 z > z′，则 log z > log z′。因此，任何函数 g(z) 的最大值位置与 log g(z) 的最大值位置相同。b) 函数 g(z)。c) 该函数的对数 log g(z)。g(z) 上所有正斜率的位置在经过对数变换后依然保持正斜率，负斜率的位置同样保持负斜率。最大值位置不变。`
 #### 5.1.3 最大化对数似然
 尽管最大似然准则（方程 5.1）理论上有效，但在实际应用中并不方便。每个项 $Pr(y_i|f(x_i, \phi))$ 的值可能很小，导致这些项的乘积极小，难以用有限精度算法精确表示。幸运的是，我们可以通过最大化似然的对数来解决这个问题：
 
@@ -97,6 +106,10 @@ L[\phi] = - \sum_{i=1}^{I} \log \left[ Pr(y_i|f(x_i, \phi), \sigma^2) \right]
 = - \sum_{i=1}^{I} \log \left[ \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left[ -\frac{(y_i - f(x_i, \phi))^2}{2\sigma^2} \right] \right] \tag{5.9}
 $$
 在训练模型时，我们的目标是找到最小化这一损失的参数 $\hat{\phi}$。
+
+![图5.3](figures/chapter5/LossNorm.svg)
+
+`图 5.3 单变量正态分布（也被称为高斯分布）是在实数轴 z ∈ R 上定义的，其主要由两个参数 μ 和 σ2 决定。其中，均值 μ 决定了分布的峰值位置，而方差 σ2 的标准差（即方差的正平方根）则决定了分布的宽度。因为整个概率密度的总和为一，所以当方差减小，分布变得更加集中时，其峰值也相应地变得更高。`
 #### 5.3.1 最小平方损失函数
 
 我们对损失函数进行一系列代数操作，目的是寻找：
@@ -117,14 +130,18 @@ L[\phi] = \sum_{i=1}^{I} (y_i - f(x_i, \phi))^2 \tag{5.11}
 $$
 最小平方损失函数的自然来源于两个假设：预测误差（i）是独立的，并且（ii）遵循均值为 $\mu = f(x_i, \phi)$ 的正态分布（参见图 5.4）。
 
+![Figure5.4](figures/chapter5/LossNormalRegression.svg)
+
+`图 5.4 最小二乘法与正态分布最大似然损失的等效性。a) 参照图 2.2 中的线性模型。最小二乘法通过最小化模型预测值 f[xi,φ]（绿线）与真实输出值 yi（橙色点）之间差异（虚线表示）的平方和来进行优化。在此例中，模型拟合非常准确，因此这些差异非常小（比如，对于被特别标出的两个点）。b) 当参数设置不当时，模型拟合效果较差，导致平方差异显著增加。c) 最小二乘法的原理是假设模型预测的是输出值的正态分布的平均值，并且我们通过最大化概率来优化它。在第一种情况下，由于模型拟合得很好，所以数据的概率 Pr(yi|xi)（水平橙色虚线）较高（相应的负对数概率较小）。d) 在第二种情况下，由于模型拟合效果差，因此概率较低，负对数概率较高。`
+
 #### 5.3.2 推断
 
 网络现在不直接预测 $y$，而是预测 $y$ 的正态分布均值 $\mu = f(x, \phi)$。在进行推断时，我们通常寻求一个最佳的单点估计，因此我们选择预测分布的最大值：
 
 $$
-\hat{y} = \argmax_y [Pr(y|f(x, \phi))] .
+\hat{y} = argmax_y [Pr(y|f(x, \phi))] \tag{5.12}
 $$
-(5.12)
+
 
 在单变量正态分布中，最大值位置由均值参数 $\mu$ 决定（参见图 5.3）。这正是模型所计算的，因此 $\hat{y} = f(x, \phi)$。
 #### 5.3.3 估计方差
@@ -132,7 +149,10 @@ $$
 在制定最小平方损失函数时，我们假定网络预测了正态分布的均值。有趣的是，方程 5.11 中的最终表达式并不依赖于方差 $\sigma^2$。但我们可以将 $\sigma^2$ 视为模型的参数之一，并对模型参数 $\phi$ 和分布的方差 $\sigma^2$ 一起最小化方程 5.9：
 
 
-5.13公式todo
+$$
+\hat{\phi}, \hat{\sigma}^2 = \arg\min_{\phi,\sigma^2} \left[ -\sum_{i=1}^I \log \left[ \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left( -\frac{(y_i - f(x_i; \phi))^2}{2\sigma^2} \right) \right] \right] \tag{5.13}
+$$
+
 
 在推断阶段，模型从输入中预测均值 $\mu = f[x, \hat{\phi}]$，同时我们在训练过程中得到了方差 $\hat{\sigma}^2$ 的估计。均值是最优预测，而方差反映了预测的不确定性。
 
@@ -157,6 +177,9 @@ $$
 $$
 图 5.5 对比了同方差和异方差模型。
 
+![Figure5.5](figures/chapter5/LossHeteroscedastic.svg)
+
+`图 5.5 同方差回归与异方差回归比较。a) 在同方差回归中，一个简单的神经网络模型根据输入 x 预测输出分布的平均值 μ。b) 这种情况下，尽管输出的均值（用蓝线表示）随输入 x 呈分段线性变化，方差却始终保持不变（通过箭头和灰色区域表示的 ±2 标准差来展示）。c) 异方差回归的浅层神经网络除了预测均值外，还会预测输出的方差 σ2（更精确地说，是计算方差的平方根，然后再平方）。d) 如此一来，标准差也随输入 x 呈分段线性变化。`
 ## 5.4 示例 2：二元分类
 
 在二元分类任务中，我们的目标是根据数据 $x$ 将其划分为两个离散类别之一 $y \in \{0, 1\}$。这里的 $y$ 被称为标签。二元分类的例子包括：（i）根据文本数据 $x$ 判断餐厅评论是正面（$y = 1$）还是负面（$y = 0$）；（ii）根据 MRI 扫描 $x$ 判断肿瘤是否存在（$y = 1$）或不存在（$y = 0$）。
@@ -195,6 +218,17 @@ $$
 
 变换后的模型输出 $sig[f(x, \phi)]$ 预测了伯努利分布的参数 $\lambda$。这代表 $y = 1$ 的概率，所以 $1 - \lambda$ 代表 $y = 0$ 的概率。在进行推断时，如果我们需要 $y$ 的具体估计，那么当 $\lambda > 0.5$ 时我们设定 $y = 1$，否则设定 $y = 0$。
 
+![Figure5.6](figures/chapter5/LossBern.svg)
+
+`图 5.6 伯努利分布。伯努利分布是定义在仅包含 {0,1} 的域上的分布，它由单一参数 λ 定义，λ 表示观测到结果为 1 的概率。相应地，结果为 0 的概率则为 1 − λ。`
+
+![Figure5.7](figures/chapter5/LossLogisticSigmoid.svg)
+
+`图 5.7 逻辑 Sigmoid 函数。该函数把实数 z 映射到 0 到 1 之间的值，因此 sig[z] 的范围是 [0, 1]。当输入为 0 时，输出值为 0.5。负数输入对应于小于 0.5 的输出值，而正数输入对应于大于 0.5 的输出值。`
+
+![Figure5.8](figures/chapter5/LossBinaryClassification.svg)
+
+`图 5.8 二元分类模型。a) 网络的输出是一个分段线性函数，能够接受任意实数值。b) 这些值通过逻辑 Sigmoid 函数转换，被压缩到 [0,1] 的区间内。c) 转换后的输出用来预测概率 λ，即 y = 1 的可能性（用实线表示）。因此，y = 0 的可能性就是 1 − λ（用虚线表示）。对任一固定的 x（通过垂直切片展示），我们能得到一个与图 5.6 类似的伯努利分布的两种概率值。损失函数倾向于优化模型参数，使得在与正例 yi = 1 关联的 xi 位置上 λ 的值较大，而在与负例 yi = 0 关联的位置上 λ 的值较小。`
 ## 5.5 示例 3：多类别分类
 
 多类别分类的目标是将输入数据 $x$ 分配给 $K > 2$ 个类别中的一个，即 $y \in \{1, 2, \ldots, K\}$。现实中的例子包括：（i）预测手写数字图像 $x$ 中的哪一个数字 $y$（$K = 10$）；（ii）预测不完整句子 $x$ 后面跟随的哪一个词汇 $y$（$K$ 个可能词汇）。
@@ -229,11 +263,32 @@ $$
 
 模型输出的变换代表了 $y \in \{1, 2, \ldots, K\}$ 可能类别的分类分布。作为点估计，我们选择最可能的类别 $\hat{y} = argmax_k[Pr(y = k|f(x, \phi))]$，这对应于图 5.10 中对于该 $x$ 值最高的曲线。
 
+![Figure5.9](figures/chapter5/LossCategorical.svg)
+
+`图 5.9 分类分布。分类分布为超过两个的 K 类别分配概率值，相应的概率为 λ1,λ2,...,λK。这里有五个类别，因此 K = 5。为保证其为一个有效的概率分布，每个参数 λk 都应处于 [0, 1] 的范围内，并且所有 K 个参数的总和必须等于 1。`
+
+![Figure5.10](figures/chapter5/LossMultiClassClassification.svg)
+`图 5.10 针对 K = 3 类别的多类别分类。a) 该网络输出三个可以任意取值的分段线性函数。b) 通过 softmax 函数处理后，这些输出值被限制为非负数，且它们的总和必须为一。因此，对于任何给定的输入 x，我们都能得到有效的分类分布参数：图中任意垂直切片所产生的三个值的总和为一，这些值代表在类似图 5.9 的分类分布条形图中各条的高度。`
 ### 5.5.1 预测其他数据类型
 
 本章主要关注回归和分类，因为这些问题非常普遍。然而，为了预测不同类型的数据，我们只需选择适合该领域的分布，并应用第5.2节中的方法。图 5.11 列出了一系列概率分布及其预测领域。其中一些将在本章末尾的问题中进行探讨。
-## 5.6 多输出预测
 
+| Data Type | Domain | Distribution | Use |
+|-----------|--------|--------------|-----|
+| univariate, continuous, unbounded | $y \in \mathbb{R}$ | normal | regression |
+| univariate, continuous, unbounded | $y \in \mathbb{R}$ | Laplace | robust regression |
+| univariate, continuous, unbounded | $y \in \mathbb{R}$ | or t-distribution | multimodal regression |
+| univariate, continuous, bounded below | $y \in \mathbb{R}^+$ | exponential or gamma | predicting magnitude |
+| univariate, continuous, bounded | $y \in [0, 1]$ | beta | predicting proportions |
+| multivariate, continuous, unbounded | $y \in \mathbb{R}^K$ | multivariate normal | multivariate regression |
+| univariate, continuous, circular | $y \in (-\pi, \pi]$ | von Mises | predicting direction |
+| univariate, discrete, binary | $y \in \{0, 1\}$ | Bernoulli | binary classification |
+| univariate, discrete, bounded | $y \in \{1, 2, \ldots, K\}$ | categorical | multiclass classification |
+| univariate, discrete, bounded below | $y \in [0, 1, 2, 3, \ldots]$ | Poisson | predicting event counts |
+| multivariate, discrete, permutation | $y \in \text{Perm}[1, 2, \ldots, K]$ | Plackett-Luce | ranking |
+
+`图 5.11 不同预测类型下损失函数的分布。`
+## 5.6 多输出预测
 在许多情况下，我们需要使用同一个模型进行多个预测，因此目标输出 $y$ 是向量形式。例如，我们可能想同时预测分子的熔点和沸点（多变量回归问题），或者预测图像中每个点的物体类别（多变量分类问题）。虽然可以定义多变量概率分布，并利用神经网络模拟它们作为输入的函数参数，但更常见的做法是将每个预测视为独立的。
 
 独立性意味着我们把概率 $Pr(y|f(x, \phi))$ 看作是对于每个元素 $y_d \in y$ 的单变量项的乘积：
@@ -253,22 +308,22 @@ $$
 
 为了同时进行两种或更多类型的预测，我们同样假设每种错误是独立的。比如，为了同时预测风向和风力，我们可能分别选择定义在圆形域的 von Mises 分布预测风向，以及定义在正实数上的指数分布预测风力。独立性假设意味着这两个预测的联合似然是单独似然的乘积。在计算负对数似然时，这些项会转化为加和形式。
 
-## 5.7 Cross-entropy loss
+## 5.7 交叉熵损失 (Cross-entropy loss)
 
-In this chapter, we developed loss functions that minimize negative log-likelihood. However, the term *cross-entropy loss* is also commonplace. In this section, we describe the cross-entropy loss and show that it is equivalent to using negative log-likelihood.
+在本章中，我们开发了旨在最小化负对数似然 (negative log-likelihood) 的损失函数。然而，术语“交叉熵损失 (cross-entropy loss)”也广为流传。在本节中，我们将解释交叉熵损失，并证明它与使用负对数似然是等价的。
 
-The cross-entropy loss is based on the idea of finding parameters $\theta$ that minimize the distance between the empirical distribution $q(y)$ of the observed data $y$ and a model distribution $Pr(y|\theta)$ (figure 5.12). The distance between two probability distributions $q(z)$ and $p(z)$ can be evaluated using the Kullback-Leibler (KL) divergence:
+交叉熵损失的核心思想是寻找参数 $\theta$，以最小化观测数据 $y$ 的经验分布 $q(y)$ 与模型分布 $Pr(y|\theta)$（见图 5.12）之间的差距。可以用 Kullback-Leibler (KL) 散度来衡量两个概率分布 $q(z)$ 和 $p(z)$ 之间的距离：
 
 $$
 D_{KL}(q||p) = \int_{-\infty}^{\infty} q(z) \log [q(z)] dz - \int_{-\infty}^{\infty} q(z) \log [p(z)] dz \tag{5.27}
 $$
-Now consider that we observe an empirical data distribution at points $\{y_i\}^I_{i=1}$. We can describe this as a weighted sum of point masses:
+设想我们在点集 $\{y_i\}^I_{i=1}$ 观测到了一组经验数据分布。这可以表示为点质量的加权总和：
 
 $$
 q(y) = \frac{1}{I} \sum_{i=1}^{I} \delta[y - y_i] \tag{5.28}
 $$
 
-where $\delta[\cdot]$ is the Dirac delta function. We want to minimize the KL divergence between the model distribution $Pr(y|\theta)$ and this empirical distribution:
+这里的 $\delta[\cdot]$ 是 Dirac delta 函数。我们的目标是最小化模型分布 $Pr(y|\theta)$ 与这一经验分布之间的 KL 散度：
 
 $$
 \begin{align}
@@ -277,7 +332,7 @@ $$
 \end{align} \tag{5.29}
 $$
 
-where the first term disappears, as it has no dependence on $\theta$. The remaining second term is known as the *cross-entropy*. It can be interpreted as the amount of uncertainty that remains in one distribution after taking into account what we already know from the other. Now, we substitute in the definition of $q(y)$ from equation 5.28:
+由于第一项与 $\theta$ 无关，因此消失了。剩下的第二项被称为*交叉熵 (cross-entropy)*。它可以理解为在考虑到另一个分布已知信息后，一个分布中剩余的不确定性量。接下来，我们将方程 5.28 中的 $q(y)$ 定义代入：
 
 $$
 \begin{align}
@@ -286,81 +341,103 @@ $$
 \end{align} \tag{5.30}
 $$
 
-The product of the two terms in the first line corresponds to pointwise multiplying the point masses in figure 5.12a with the logarithm of the distribution in figure 5.12b. We are left with a finite set of weighted probability masses centered on the data points. In the last line, we have eliminated the constant scaling factor $1/I$, as this does not affect the position of the minimum.
+第一行的两项相乘，对应于图 5.12a 中点质量与图 5.12b 中分布的对数进行逐点乘积。最终我们得到一组集中在数据点上的有限加权概率质量。在最后一行，我们去掉了不影响最小值位置的常数缩放因子 $1/I$。
 
-In machine learning, the distribution parameters $\theta$ are computed by the model $f[x_i, \phi]$, so we have:
+在机器学习领域，分布参数 $\theta$ 由模型 $f[x_i, \phi]$ 计算得出。因此，我们有：
 
 $$
 \hat{\phi} = argmin_{\phi} \left[ -\sum_{i=1}^{I} \log [Pr(y_i|f[x_i, \phi])] \right] \tag{5.31}
 $$
-This is precisely the negative log-likelihood criterion from the recipe in section 5.2. It follows that the negative log-likelihood criterion (from maximizing the data likelihood) and the cross-entropy criterion (from minimizing the distance between the model and empirical data distributions) are equivalent.
+这正是第 5.2 节提到的负对数似然准则。由此可见，负对数似然准则（即最大化数据似然）与交叉熵准则（即最小化模型与经验数据分布间的距离）是等价的。
 
-## 5.8 Summary
+![Figure5.12](figures/chapter5/LossCrossEntropy.svg)
 
-We previously considered neural networks as directly predicting outputs y from data x. In this chapter, we shifted perspective to think about neural networks as computing the parameters $\theta$ of probability distributions $Pr(y|\theta)$ over the output space. This led to a principled approach to building loss functions. We selected model parameters $\phi$ that maximized the likelihood of the observed data under these distributions. We saw that this is equivalent to minimizing the negative log-likelihood.
+`图 5.12 交叉熵方法。a) 训练样本的实证分布（箭头标示了 Dirac delta 函数）。b) 模型分布（参数为 θ = μ,σ2 的正态分布）。通过交叉熵方法，我们尝试最小化这两个分布之间的距离（即 KL 散度），这个距离是模型参数 θ 的函数。`
 
-The least squares criterion for regression is a natural consequence of this approach; it follows from the assumption that y is normally distributed and that we are predicting the mean. We also saw how the regression model could be (i) extended to estimate the uncertainty over the prediction and (ii) extended to make that uncertainty dependent on the input (the heteroscedastic model). We applied the same approach to both binary and multiclass classification and derived loss functions for each. We discussed how to tackle more complex data types and how to deal with multiple outputs. Finally, we argued that cross-entropy is an equivalent way to think about fitting models.
+## 5.8 总结
 
-In previous chapters, we developed neural network models. In this chapter, we de- veloped loss functions for deciding how well a model describes the training data for a given set of parameters. The next chapter considers model training, in which we aim to find the model parameters that minimize this loss.
+在前面的章节中，我们考虑神经网络是如何直接从数据 x 预测输出 y 的。在本章，我们改变了观点，把神经网络视为计算输出空间概率分布 $Pr(y|\theta)$ 上的参数 $\theta$。这引领我们采用了一种原理性方法构建损失函数。我们选择了能够使观测数据在这些分布下的似然最大化的模型参数 $\phi$。我们发现，这等同于最小化负对数似然 (negative log-likelihood)。
 
-## Notes
+这种方法的自然结果是，回归的最小二乘准则；它基于假设 y 符合正态分布，并且我们正在预测其均值。我们还探讨了如何 (1) 扩展回归模型以估计对预测的不确定性，以及 (2) 扩展模型使不确定性依赖于输入（heteroscedastic model）。我们将同样的方法应用于二元分类和多类分类，为每种情况推导出了损失函数。我们讨论了如何处理更加复杂的数据类型以及如何处理多个输出。最后，我们指出交叉熵是另一种等效的考虑模型拟合方式。
 
-Losses based on the normal distribution: Nix & Weigend (1994) and Williams (1996) investigated heteroscedastic nonlinear regression in which both the mean and the variance of the output are functions of the input. In the context of unsupervised learning, Burda et al. (2016) use a loss function based on a multivariate normal distribution with diagonal covariance, and Dorta et al. (2018) use a loss function based on a normal distribution with full covariance.
+在之前的章节中，我们开发了神经网络模型。在本章，我们为决定模型如何根据一组给定参数描述训练数据的效果，开发了损失函数。下一章将考虑模型训练，我们的目标是找到能使这种损失最小化的模型参数。
 
-Robust regression: Qi et al. (2020) investigate the properties of regression models that min- imize mean absolute error rather than mean squared error. This loss function follows from assuming a Laplace distribution over the outputs and estimates the median output for a given input rather than the mean. Barron (2019) presents a loss function that parameterizes the de- gree of robustness. When interpreted in a probabilistic context, it yields a family of univariate probability distributions that includes the normal and Cauchy distributions as special cases.
 
-Estimating quantiles: Sometimes, we may not want to estimate the mean or median in a regression task but may instead want to predict a quantile. For example, this is useful for risk models, where we want to know that the true value will be less than the predicted value 90% of the time. This is known as quantile regression (Koenker & Hallock, 2001). This could be done by fitting a heteroscedastic regression model and then estimating the quantile based on the predicted normal distribution. Alternatively, the quantiles can be estimated directly using quantile loss (also known as pinball loss). In practice, this minimizes the absolute deviations of the data from the model but weights the deviations in one direction more than the other. Recent work has investigated simultaneously predicting multiple quantiles to get an idea of the overall distribution shape (Rodrigues & Pereira, 2020).
+## 笔记
 
-Class imbalance and focal loss: Lin et al. (2017c) address data imbalance in classification problems. If the number of examples for some classes is much greater than for others, then the standard maximum likelihood loss does not work well; the model may concentrate on becoming more confident about well-classified examples from the dominant classes and classify less well- represented classes poorly. Lin et al. (2017c) introduce focal loss, which adds a single extra parameter that down-weights the effect of well-classified examples to improve performance.
+基于正态分布的损失函数：Nix & Weigend (1994) 和 Williams (1996) 研究了异方差非线性回归 (heteroscedastic nonlinear regression)，其中输出的均值和方差都是输入的函数。在无监督学习的背景下，Burda 等人 (2016) 使用了基于具有对角协方差的多变量正态分布的损失函数，而 Dorta 等人 (2018) 使用了基于具有完全协方差的正态分布的损失函数。
 
-Learning to rank: Cao et al. (2007), Xia et al. (2008), and Chen et al. (2009) all used the Plackett-Luce model in loss functions for learning to rank data. This is the listwise approach to learning to rank as the model ingests an entire list of objects to be ranked at once. Alternative approaches are the pointwise approach, in which the model ingests a single object, and the pairwise approach, where the model ingests pairs of objects. Chen et al. (2009) summarize different approaches for learning to rank.
+稳健回归：Qi 等人 (2020) 研究了最小化平均绝对误差而非平均平方误差的回归模型特性。这种损失函数基于对输出采用拉普拉斯分布的假设，并估计给定输入的中位数输出，而非均值。Barron (2019) 提出了一种参数化稳健度的损失函数。在概率背景下解释时，它产生了一个包括正态分布和柯西分布作为特例的单变量概率分布族。
 
-Other data types: Fan et al. (2020) use a loss based on the beta distribution for predicting values between zero and one. Jacobs et al. (1991) and Bishop (1994) investigated mixture density networks for multimodal data. These model the output as a mixture of Gaussians (see figure 5.14) that is conditional on the input. Prokudin et al. (2018) used the von Mises distribution to predict direction (see figure 5.13). Fallah et al. (2009) constructed loss functions for prediction counts using the Poisson distribution (see figure 5.15). Ng et al. (2017) used loss functions based on the gamma distribution to predict duration.
+估计分位数：有时，我们可能不想在回归任务中估计均值或中位数，而是希望预测一个分位数。例如，这对风险模型很有用，我们希望知道真实值在 90% 的时间内会小于预测值。这被称为分位数回归 (Koenker & Hallock, 2001)。这可以通过拟合一个异方差回归模型，然后基于预测的正态分布估计分位数来完成。或者，分位数可以直接使用分位数损失（也称为弹球损失）来估计。在实践中，这最小化了数据与模型的绝对偏差，但在一个方向上对偏差的权重比另一个方向更大。最近的研究探索了同时预测多个分位数以获得整体分布形状的概念（Rodrigues & Pereira, 2020）。
 
-Non-probabilistic approaches: It is not strictly necessary to adopt the probabilistic ap- proach discussed in this chapter, but this has become the default in recent years; any loss func- tion that aims to reduce the distance between the model output and the training outputs will suﬀice, and distance can be defined in any way that seems sensible. There are several well-known non-probabilistic machine learning models for classification, including support vector machines (Vapnik, 1995; Cristianini & Shawe-Taylor, 2000), which use hinge loss, and AdaBoost (Freund & Schapire, 1997), which uses exponential loss.
+类别不平衡和焦点损失：Lin 等人 (2017c) 讨论了分类问题中的数据不平衡问题。如果某些类别的示例数量远大于其他类别，则标准的最大似然损失就不再适用；模型可能会专注于提高对主导类别中已分类良好示例的信心，而对代表性较差的类别分类不佳。Lin 等人 (2017c) 引入了焦点损失，该损失添加了一个额外的参数，用于减弱分类良好示例的影响，以提高性能。
+
+学习排名：Cao 等人 (2007)，Xia 等人 (2008)，和 Chen 等人 (2009) 都在学习排名数据的损失函数中使用了 Plackett-Luce 模型。这是学习排名的列表式方法，因为模型一次性处理整个待排名的对象列表。其他方法包括点式方法，其中模型处理单个对象，以及对式方法，其中模型处理对象对。Chen 等人 (2009) 总结了学习排名的不同方法。
+
+其他数据类型：Fan 等人 (2020) 使用基于贝塔分布的损失来预测 0 到 1 之间的值。Jacobs 等人 (1991) 和 Bishop (1994) 研究了适用于多模态数据的混合密度网络。这些模型将输出建模为基于输入的高斯混合（见图 5.14）。Prokudin 等人 (2018) 使用了 von Mises 分布来预测方向（见图 5.13）。Fallah 等人 (2009) 使用泊松分布构建了预测计数的损失函数（见图 5.15）。Ng 等人 (2017) 使用基于伽马分布的损失函数来预测持续时间。
+
+![Figure5.13](figures/chapter5/LossVonMises.svg)
+
+`图 5.13 冯·米塞斯分布定义在圆周上，范围是（−π, π]。它由两个参数构成：平均值 μ 决定了分布峰值的位置；浓度参数 κ（大于 0）起着类似于方差倒数的作用，因此 1/√κ 可以大致看作是与正态分布的标准差相对应的量。`
+
+非概率方法：采用本章讨论的概率方法并不是严格必要的，但这在近年来已成为默认方法；任何旨在减少模型输出与训练输出之间距离的损失函数都是足够的，距离可以用任何看似合理的方式定义。有几种著名的非概率机器学习模型用于分类，包括支持向量机 (Vapnik, 1995; Cristianini & Shawe-Taylor, 2000)，它们使用铰链损失，以及 AdaBoost (Freund & Schapire, 1997)，它们使用指数损失。
+
 
 ## Problems
 
-**Problem 5.1** Show that the logistic sigmoid function $\text{sig}[z]$ maps $z = -\infty$ to 0, $z = 0$ to 0.5 and $z = \infty$ to 1 where:
+## 问题
+
+**问题 5.1** 证明逻辑 sigmoid 函数 $\text{sig}[z]$ 将 $z = -\infty$ 映射到 0，$z = 0$ 映射到 0.5，$z = \infty$ 映射到 1，其中：
 
 $$
 \text{sig}[z] = \frac{1}{1 + \exp[-z]} \tag{5.32}
 $$
 
-**Problem 5.2** The loss $L$ for binary classification for a single training pair $\{x, y\}$ is:
+**问题 5.2** 对于单个训练对 $\{x, y\}$ 的二元分类，损失 $L$ 为：
 
 $$
 L = -(1 - y) \log [1 - \text{sig}[f[x, \phi]]] - y \log [\text{sig}[f[x, \phi]]] \tag{5.33}
 $$
-where $\text{sig}[\cdot]$ is defined in equation 5.32. Plot this loss as a function of the transformed network output $\text{sig}[f[x, \phi]] \in [0, 1]$ (i) when the training label $y = 0$ and (ii) when $y = 1$.
+其中 $\text{sig}[\cdot]$ 在方程 5.32 中定义。当训练标签 $y = 0$ 时（1）以及当 $y = 1$ 时（2），将这种损失作为变换后的网络输出 $\text{sig}[f[x, \phi]] \in [0, 1]$ 的函数绘制出来。
 
-**Problem 5.3*** Suppose we want to build a model that predicts the direction $y$ in radians of the prevailing wind based on local measurements of barometric pressure $x$. A suitable distribution over circular domains is the von Mises distribution (figure 5.13):
+**问题 5.3*** 假设我们想构建一个模型，基于本地气压 $x$ 的测量来预测占主导地位的风向 $y$（以弧度表示）。适用于圆形域的分布是 von Mises distribution（见图 5.13）：
 
 $$
 Pr(y|\mu, \kappa) = \frac{\exp[\kappa \cos(y - \mu)]}{2\pi \cdot \text{Bessel}_0[\kappa]} \tag{5.34}
 $$
-where $\mu$ is a measure of the mean direction and $\kappa$ is a measure of the concentration (i.e., the inverse of the variance). The term $\text{Bessel}_0[\kappa]$ is a modified Bessel function of order 0. Use the recipe from section 5.2 to develop a loss function for learning the parameter $\mu$ of a model $f[x, \phi]$ to predict the most likely wind direction. Your solution should treat the concentration $\kappa$ as constant. How would you perform inference?
+其中 $\mu$ 是平均方向的度量，$\kappa$ 是集中度的度量（即方差的倒数）。项 $\text{Bessel}_0[\kappa]$ 是阶数为 0 的修改过的贝塞尔函数。使用第 5.2 节的配方来开发用于学习模型 $f[x, \phi]$ 参数 $\mu$ 的损失函数，以预测最有可能的风向。你的解决方案应将集中度 $\kappa$ 视为常数。你会如何进行推理？
 
-**Problem 5.4*** Sometimes, the outputs $y$ for input $x$ are multimodal (figure 5.14a); there is more than one valid prediction for a given input. Here, we might use a weighted sum of normal components as the distribution over the output. This is known as a *mixture of Gaussians* model. For example, a mixture of two Gaussians has parameters $\Theta = \{\lambda, \mu_1, \sigma_1^2, \mu_2, \sigma_2^2\}$:
+**问题 5.4*** 有时，对于输入 $x$ 的输出 $y$ 是多模态的（见图 5.14a）；对于给定输入，有多个有效的预测。在这里，我们可能使用正态分量的加权和作为输出的分布。这被称为高斯混合 (Gaussian Mixture) 模型。例如，两个高斯的混合具有参数 $\Theta = \{\lambda, \mu_1, \sigma_1^2, \mu_2, \sigma_2^2\}$：
 
 $$
 Pr(y|\mu_1, \mu_2, \sigma_1^2, \sigma_2^2) = \frac{\lambda}{\sqrt{2\pi\sigma_1^2}} \exp \left[ -\frac{(y - \mu_1)^2}{2\sigma_1^2} \right] + \frac{1 - \lambda}{\sqrt{2\pi\sigma_2^2}} \exp \left[ -\frac{(y - \mu_2)^2}{2\sigma_2^2} \right] \tag{5.35}
 $$
-where $\lambda \in [0, 1]$ controls the relative weight of the two components, which have means $\mu_1, \mu_2$ and variances $\sigma_1^2, \sigma_2^2$, respectively. This model can represent a distribution with two peaks (figure 5.14b) or a distribution with one peak but a more complex shape (figure 5.14c). Use the recipe from section 5.2 to construct a loss function for training a model $f[x, \phi]$ that takes input $x$, has parameters $\phi$, and predicts a mixture of two Gaussians. The loss should be based on $I$ training data pairs $\{x_i, y_i\}$. What problems do you foresee when performing inference?
+其中 $\lambda \in [0, 1]$ 控制两个分量的相对权重，它们分别具有均值 $\mu_1, \mu_2$ 和方差 $\sigma_1^2, \sigma_2^2$。这个模型可以表示具有两个峰的分布（见图 5.14b）或具有更复杂形状的单峰分布（见图 5.14c）。使用第 5.2 节的配方构建一个训练模型 $f[x, \phi]$ 的损失函数，该模型接收输入 $x$，具有参数 $\phi$，并预测两个高斯的混合。损失应基于 $I$ 训练数据对 $\{x_i, y_i\}$。在进行推理时，你预见会遇到什么问题？
 
-**Problem 5.5** Consider extending the model from problem 5.3 to predict the wind direction using a mixture of two von Mises distributions. Write an expression for the likelihood $Pr(y|\theta)$ for this model. How many outputs will the network need to produce?
+![Figure5.14](figures/chapter5/LossMoG.svg)
 
-**Problem 5.6** Consider building a model to predict the number of pedestrians $y \in \{0, 1, 2, \ldots\}$ that will pass a given point in the city in the next minute, based on data $x$ that contains information about the time of day, the longitude and latitude, and the type of neighborhood. A suitable distribution for modeling counts is the Poisson distribution (figure 5.15). This has a single parameter $\lambda > 0$ called the rate that represents the mean of the distribution. The distribution has probability density function:
+`图 5.14 多模态数据及其高斯混合密度。a) 在示例训练数据中，当输入 x 的值处于中间范围时，相应的输出 y 会沿着两种可能的路径之一变化。例如，在 x = 0 的情况下，输出 y 的值可能接近 −2 或 +3，但不太可能是介于这两个值之间。b) 高斯混合模型非常适合描述这种数据，它通过将两个或更多具有不同均值和方差的正态分布（此处为两个分布，分别用虚线蓝色和橙色曲线表示）进行加权求和（用实线青色曲线表示）来构建。当各个正态分布的均值相差较远时，便形成了多模态分布。c) 当这些均值较为接近时，这种混合模型能够描述单峰但非正态的密度分布。`
+
+
+**问题 5.5** 考虑扩展问题 5.3 中的模型，使用两个 von Mises distribution 的混合来预测风向。为这个模型写出似然 $Pr(y|\theta)$ 的表达式。网络需要产生多少个输出？
+
+**问题 5.6** 考虑构建一个模型，预测接下来一分钟内将有多少行人 $y \in \{0, 1, 2, \ldots\}$ 经过城市中给定的点，这是基于包含一天中的时间、经纬度和社区类型等信息的数据 $x$。适用于模拟计数的分布是泊松分布（见图 5.15）。它有一个称为速率的单一参数 $\lambda > 0$，代表分布的均值。该分布的概率密度函数为：
 
 $$
 Pr(y = k) = \frac{\lambda^k e^{-\lambda}}{k!} \tag{5.36}
 $$
-Design a loss function for this model assuming we have access to $I$ training pairs $\{x_i, y_i\}$.
+假设我们可以访问 $I$ 个训练对 $\{x_i, y_i\}$，为这个模型设计一个损失函数。
 
-**Problem 5.7** Consider a multivariate regression problem where we predict ten outputs, so $y \in \mathbb{R}^{10}$, and model each with an independent normal distribution where the means $\mu_d$ are predicted by the network, and variances $\sigma^2$ are constant. Write an expression for the likelihood $Pr(y|f[x, \phi])$. Show that minimizing the negative log-likelihood of this model is still equivalent to minimizing a sum of squared terms if we don’t estimate the variance $\sigma^2$.
+![Figure5.15](figures/chapter5/LossPoisson.svg)
 
-**Problem 5.8*** Construct a loss function for making multivariate predictions $y \in \mathbb{R}^D_i$ based on independent normal distributions with different variances $\sigma_d^2$ for each dimension. Assume a heteroscedastic model so that both the means $\mu_d$ and variances $\sigma_d^2$ vary as a function of the data.
+`图 5.15 泊松分布是定义在非负整数上的离散分布，具有一个参数 λ（正实数），称为分布的率，它代表了分布的平均值。a–c) 分别展示了当率为 1.4、2.8 和 6.0 时的泊松分布，展示了不同率值下分布形态的变化。`
 
-**Problem 5.9*** Consider a multivariate regression problem in which we predict the height of a person in meters and their weight in kilos from data $x$. Here, the units take quite different ranges. What problems do you see this causing? Propose two solutions to these problems.
+**问题 5.7** 考虑一个多变量回归问题，我们预测十个输出，因此 $y \in \mathbb{R}^{10}$，并且用独立的正态分布对每个进行建模，其中均值 $\mu_d$ 由网络预测，方差 $\sigma^2$ 是常数。写出似然 $Pr(y|f[x, \phi])$ 的表达式。展示如果我们不估计方差 $\sigma^2$，最小化这个模型的负对数似然仍然等价于最小化一系列平方项。
 
-**Problem 5.10** Extend the model from problem 5.3 to predict both the wind direction and the wind speed and define the associated loss function.
+**问题 5.8*** 构建一个损失函数，用于基于独立正态分布进行多变量预测 $y \in \mathbb{R}^D_i$，每个维度有不同的方差 $\sigma_d^2$。假设一个异方差模型，使得均值 $\mu_d$ 和方差 $\sigma_d^2$ 都随数据而变化。
+
+**问题 5.9*** 考虑一个多变量回归问题，我们从数据 $x$ 预测一个人的身高（以米为单位）和体重（以千克为单位）。这里，单位的范围差异较大。你认为这会导致什么问题？提出两个解决这些问题的方案。
+
+**问题 5.10** 扩展问题 5.3 中的模型，预测风向和风速，并定义相关的损失函数。
+
